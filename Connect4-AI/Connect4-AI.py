@@ -3,23 +3,26 @@ import pygame
 import sys
 import math
 import random
-
+# Color initialization
 BLUE = (0,0,255)
 BLACK = (0,0,0)
 RED = (255,0,0)
 YELLOW = (255,255,0) 
 
+# number of row and colomn of the game
 ROW_COUNT = 6
 COLUMN_COUNT = 7
 
-#Variable to add IA
+#Variable to define which turn to play 
 PLAYER = 0
 AI = 1
 
+# Input in the board
 PLAYER_PIECE = 1
 AI_PIECE = 2
 EMPTY = 0
 
+# number to win
 WINDOW_LENGTH = 4
 
 #create our board function
@@ -27,6 +30,7 @@ def created_board():
     board = np.zeros((ROW_COUNT, COLUMN_COUNT))#our dimensional board, with 0 we have 7 for y, 7+0=8 for x
     return board
 
+# drop piece in the right row/column
 def drop_piece(board, row, col, piece):
     board[row][col] = piece
 
@@ -34,13 +38,13 @@ def drop_piece(board, row, col, piece):
 def is_valid_location(board, col):
     return board[ROW_COUNT-1][col] == 0
 
+#check board position equal 0
 def get_next_open_row(board, col):
-    #check board position equal 0
     for r in range(ROW_COUNT):
         if board[r][col] == 0:
             return r
 
-#change the orientation of the borad = 180°
+#change the orientation of the board = 180°
 def print_board(board):
     print(np.flip(board, 0))
     
@@ -66,18 +70,19 @@ def winning_move(board, piece):
 
     #check negative diaganols location
     for c in range(COLUMN_COUNT-3):
-        for r in range(3, ROW_COUNT):#ROW_COUNT-3 because you can't win with 3 power
+        for r in range(3, ROW_COUNT):#3 because negative diaganols can't begin 1 and 3
              if board[r][c] == piece and board[r-1][c+1] == piece and board[r-2][c+2] == piece and board[r-3][c+3] == piece:
                  return True
              
 def evaluate_window(window, piece):
     score = 0
+    # opp_piece represent the opponent piece
     opp_piece = PLAYER_PIECE
     if piece == PLAYER_PIECE:
         opp_piece = AI_PIECE
         
-    if window.count(piece) == 4:
-        score += 100
+    # if window.count(piece) == 4:
+    #     score += 100
     elif window.count(piece) == 3 and window.count(EMPTY) == 1:
         score += 5
     elif window.count(piece) == 2 and window.count(EMPTY) == 2:
@@ -94,12 +99,14 @@ def score_position(board, piece):
     center_array = [int(i) for i in list(board[:, COLUMN_COUNT//2])]
     center_count = center_array.count(piece)
     score += center_count * 3
+    
     # Score horizontal
     for r in range(ROW_COUNT):
         row_array = [int(i) for i in list(board[r,:])]
         for c in range(COLUMN_COUNT-3):
             window = row_array[c:c+WINDOW_LENGTH]
             score += evaluate_window(window, piece)
+            
     # Score vertical
     for c in range(COLUMN_COUNT):
         col_array = [int(i) for i in list(board[:,c])]
@@ -124,13 +131,15 @@ def score_position(board, piece):
     
     return score
 
-def is_terminal_node(board):
+# Check if Player or AI win, or if len(get_valid_location(board)) == 0 the game end within a victory
+def is_terminal_node(board):# if True, it is a terminal node
     return winning_move(board, PLAYER_PIECE) or winning_move(board, AI_PIECE) or len(get_valid_location(board)) == 0
 
+# Algorithm minimax, possible moove tree * depth
 def minimax(board, depth, maximizingPlayer):
-    valid_location = get_valid_location(board)
-    is_terminal = is_terminal_node(board) 
-    if depth == 0 or is_terminal:
+    valid_location = get_valid_location(board) # 
+    is_terminal = is_terminal_node(board) # if False, then continue
+    if depth == 0 or is_terminal:# Stop the recursive function
         if is_terminal:
             if winning_move(board, AI_PIECE):
                 return (None, 1000000000000000)
@@ -142,17 +151,17 @@ def minimax(board, depth, maximizingPlayer):
             return (None, score_position(board, AI_PIECE))
     
     if maximizingPlayer:
-        value = -math.inf
-        column = random.choice(valid_location)
-        for col in valid_location:
+        value = -math.inf # giving an infinite value is a security for next step
+        column = random.choice(valid_location) # choose a valid random location for column
+        for col in valid_location:  
             row = get_next_open_row(board, col)
             b_copy = board.copy()
             drop_piece(b_copy, row, col, AI_PIECE)
-            new_score = minimax(b_copy, depth-1, False)[1]
+            new_score = minimax(b_copy, depth-1, False)[1] # return the best score of recursive function minimax
             if new_score > value:
                 value = new_score
                 column = col
-        return column, value
+        return column, value # return the best value with the column choice
         
     else: # Minimizing player
         value = math.inf
@@ -166,15 +175,13 @@ def minimax(board, depth, maximizingPlayer):
                 value = new_score
                 column = col
         return column, value
-
-
+# Check all valid column 
 def get_valid_location(board):
     valid_location = []
     for col in range(COLUMN_COUNT):
         if is_valid_location(board, col):  
             valid_location.append(col)
     return valid_location
-
 
 def pick_best_move(board, piece):
     valid_location = get_valid_location(board)
@@ -243,11 +250,12 @@ while not game_over:
             if turn == PLAYER:
                 pygame.draw.circle(screen, RED, (posx, int(SQUARESIZE/2)), RADIUS)
 
+# ----TODO ADD right/left + enter input 
+
         pygame.display.update()
             
         if event.type == pygame.MOUSEBUTTONDOWN:
             pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
-            # print(event.pos)
             #Ask for palyer 1 input
             if turn == 0:
                 posx = event.pos[0]
@@ -272,9 +280,7 @@ while not game_over:
     # #Ask for palyer 2 input
     if turn == AI and not game_over:
         
-        # col = random.randint(0, COLUMN_COUNT-1)
-        # col = pick_best_move(board, AI_PIECE)
-        col, minimax_score = minimax(board, 1, True)
+        col, minimax_score = minimax(board, 2, True)
         
         if is_valid_location(board, col):
             pygame.time.wait(1000)
@@ -286,7 +292,7 @@ while not game_over:
                 screen.blit(label, (40, 10))
                 game_over = True
             
-                    
+        
             print_board(board)
             draw_board(board)
             
