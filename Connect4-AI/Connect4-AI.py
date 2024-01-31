@@ -8,7 +8,8 @@ BLUE = (0,0,255)
 BLACK = (0,0,0)
 RED = (255,0,0)
 YELLOW = (255,255,0) 
-
+WHITE = (255, 255, 255)
+GREEN = (0, 255, 0)
 # number of row and colomn of the game
 ROW_COUNT = 6
 COLUMN_COUNT = 7
@@ -47,7 +48,51 @@ def get_next_open_row(board, col):
 #change the orientation of the board = 180°
 def print_board(board):
     print(np.flip(board, 0))
-    
+
+# Define difficulty
+def get_difficulty():
+    difficulty = None
+    myfontDifficulty= pygame.font.SysFont("monospace", 28)
+    while difficulty is None:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                x, y = pos
+
+                # Check the click zone
+                if 50 < x < 150 and 200 < y < 300:
+                    difficulty = 1  # Very easy
+                elif 200 < x < 300 and 200 < y < 300:
+                    difficulty = 2  # Easy
+                elif 350 < x < 450 and 200 < y < 300:
+                    difficulty = 3  # Normal
+                elif 500 < x < 600 and 200 < y < 300:
+                    difficulty = 4  # Difficult
+
+        screen.fill(BLACK)
+        
+        # Draw rect for difficulty level
+        pygame.draw.rect(screen, GREEN, (50, 200, 100, 100))  # Très facile (vert)
+        pygame.draw.rect(screen, YELLOW, (200, 200, 100, 100))  # Facile (jaune)
+        pygame.draw.rect(screen, BLUE, (350, 200, 100, 100))  # Moyen (bleu)
+        pygame.draw.rect(screen, RED, (500, 200, 100, 100))  # Difficile (rouge)
+
+        # Draw message difficulty
+        label = myfontDifficulty.render("Very Easy", 1, WHITE)
+        screen.blit(label, (20, 120))
+        label = myfontDifficulty.render("Easy", 1, WHITE)
+        screen.blit(label, (220, 120))
+        label = myfontDifficulty.render("Normal", 1, WHITE)
+        screen.blit(label, (350, 120))
+        label = myfontDifficulty.render("Difficult", 1, WHITE)
+        screen.blit(label, (490, 120))
+        
+        pygame.display.update()
+    return difficulty
+
 #Winning condition
 def winning_move(board, piece):
     # check horizontal location
@@ -183,21 +228,6 @@ def get_valid_location(board):
             valid_location.append(col)
     return valid_location
 
-def pick_best_move(board, piece):
-    valid_location = get_valid_location(board)
-    best_score = -1000
-    best_col = random.choice(valid_location)
-    for col in valid_location:
-        row = get_next_open_row(board, col)
-        temp_board = board.copy()
-        drop_piece(temp_board, row, col, piece)
-        score = score_position(temp_board, piece)
-        if score > best_score:
-            best_score = score
-            best_col = col
-            
-    return best_col   
-             
 # For print board in pygame
 def draw_board(board):
     for c in range(COLUMN_COUNT):
@@ -212,6 +242,9 @@ def draw_board(board):
             elif board[r][c] == AI_PIECE:
                 pygame.draw.circle(screen, YELLOW, (int(c*SQUARESIZE+SQUARESIZE/2), height-int(r*SQUARESIZE+SQUARESIZE/2)), RADIUS)
     pygame.display.update()
+
+def reset_game():
+    return np.array([[0] * COLUMN_COUNT for _ in range(ROW_COUNT)])
 
 board = created_board()
 #initialize Game loop condition
@@ -229,12 +262,17 @@ height = (ROW_COUNT+1) * SQUARESIZE# (ROW_COUNT+1) for the player choice space
 size = (width, height)
 # Radius of the piece
 RADIUS = int(SQUARESIZE/2 - 5)
+# Font for screen app
+myfontWin = pygame.font.SysFont("monospace", 75)
+myfontReset = pygame.font.SysFont("monospace", 30)
 #display screen
 screen = pygame.display.set_mode(size)
+difficulty = get_difficulty()
+pygame.display.update()
 draw_board(board)
 pygame.display.update()
-# Font for screen app
-myfont = pygame.font.SysFont("monospace", 75)
+
+depth = difficulty
 # Random select first player
 turn = random.randint(PLAYER, AI)
 while not game_over:
@@ -250,8 +288,6 @@ while not game_over:
             if turn == PLAYER:
                 pygame.draw.circle(screen, RED, (posx, int(SQUARESIZE/2)), RADIUS)
 
-# ----TODO ADD right/left + enter input 
-
         pygame.display.update()
             
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -266,21 +302,19 @@ while not game_over:
                     drop_piece(board, row, col, PLAYER_PIECE)
 
                     if winning_move(board, PLAYER_PIECE):
-                        label = myfont.render("Player 1 win!", 1, RED)
+                        label = myfontWin.render("Player 1 win!", 1, RED)
                         screen.blit(label, (40, 10))
                         game_over = True
                         
-                    print_board(board)
                     draw_board(board)
                     
                     turn +=1
                     turn = turn % 2
             
-            
-    # #Ask for palyer 2 input
+        # AI turn
     if turn == AI and not game_over:
         
-        col, minimax_score = minimax(board, 2, True)
+        col, minimax_score = minimax(board, depth, True)
         
         if is_valid_location(board, col):
             pygame.time.wait(1000)
@@ -288,17 +322,42 @@ while not game_over:
             drop_piece(board, row, col, AI_PIECE)
             
             if winning_move(board, AI_PIECE):
-                label = myfont.render("Player 2 win!", 1, YELLOW)
+                label = myfontWin.render("Player 2 win!", 1, YELLOW)
                 screen.blit(label, (40, 10))
                 game_over = True
-            
-        
-            print_board(board)
+
             draw_board(board)
             
             turn +=1
             turn = turn % 2
     
     if game_over:
+        draw_board(board)
         pygame.time.wait(3000)
-    
+        # Ask to the player 
+        replay_text = myfontReset.render("Press Space to play or N to stop", 1, WHITE)
+        screen.blit(replay_text, (10, 150))
+        pygame.display.update()
+
+        replay_decision = None
+        while replay_decision is None:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        replay_decision = True
+                    elif event.key == pygame.K_n:
+                        replay_decision = False
+
+        if replay_decision:
+            # Initialize a new board
+            board = reset_game()
+            game_over = False
+            difficulty = get_difficulty()
+            depth = difficulty
+            turn = random.randint(PLAYER, AI)
+            draw_board(board)
+            
+        else:
+            sys.exit()
