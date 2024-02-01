@@ -28,7 +28,7 @@ WINDOW_LENGTH = 4
 
 #create our board function
 def created_board():
-    board = np.zeros((ROW_COUNT, COLUMN_COUNT))#our dimensional board, with 0 we have 7 for y, 7+0=8 for x
+    board = np.zeros((ROW_COUNT, COLUMN_COUNT))#our dimensional board, count 0 to 6 we have 7 for y, 7+0=8 for x
     return board
 
 # drop piece in the right row/column
@@ -88,7 +88,7 @@ def get_difficulty():
         label = myfontDifficulty.render("Normal", 1, WHITE)
         screen.blit(label, (350, 120))
         label = myfontDifficulty.render("Difficult", 1, WHITE)
-        screen.blit(label, (490, 120))
+        screen.blit(label, (470, 120))
         
         pygame.display.update()
     return difficulty
@@ -220,6 +220,7 @@ def minimax(board, depth, maximizingPlayer):
                 value = new_score
                 column = col
         return column, value
+    
 # Check all valid column 
 def get_valid_location(board):
     valid_location = []
@@ -335,7 +336,7 @@ while not game_over:
         draw_board(board)
         pygame.time.wait(3000)
         # Ask to the player 
-        replay_text = myfontReset.render("Press Space to play or N to stop", 1, WHITE)
+        replay_text = myfontReset.render("Press Space to play or N to quit", 1, WHITE)
         screen.blit(replay_text, (10, 150))
         pygame.display.update()
 

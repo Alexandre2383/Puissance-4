@@ -146,8 +146,7 @@ while not game_over:
                         label = myfont.render("Player 2 win!", 1, YELLOW)
                         screen.blit(label, (40, 10))
                         game_over = True
-                    
-            print_board(board)
+                        
             draw_board(board)
             turn +=1
             turn = turn % 2
